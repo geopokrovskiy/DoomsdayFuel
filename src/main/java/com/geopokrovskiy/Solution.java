@@ -1,0 +1,443 @@
+package com.geopokrovskiy;
+
+import java.lang.reflect.Array;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+
+public class Solution {
+
+   /* public static int findGCD(int a, int b) {
+        if (a == 0) {
+            return 1;
+        }
+        int aIsNegative = (a < 0) ? -1 : 1;
+        int bIsNegative = (b < 0) ? -1 : 1;
+
+        a = Math.abs(a);
+        b = Math.abs(b);
+
+        if (a == b) {
+            return a * aIsNegative * bIsNegative;
+        } else {
+            int max = Math.max(a, b);
+            int min = Math.min(a, b);
+            a = max - min;
+            b = min;
+            return findGCD(a * aIsNegative, b * bIsNegative);
+        }
+    }*/
+
+    public static BigInteger findGCD(BigInteger a, BigInteger b) {
+        if (b.equals(BigInteger.valueOf(0))) {
+            return a;
+        }
+        return (findGCD(b,  a.mod(b))).compareTo(BigInteger.valueOf(0)) > 0 ? (findGCD(b,  a.mod(b))) : (findGCD(b,  a.mod(b)).multiply(BigInteger.valueOf(-1))) ;
+    }
+
+    public static BigInteger findLCM(BigInteger a, BigInteger b){
+        return (a.multiply(b)).divide(findGCD(a, b)).compareTo(BigInteger.valueOf(0)) > 0 ? (a.multiply(b)).divide(findGCD(a, b)) : (a.multiply(b)).divide(findGCD(a, b)).multiply(BigInteger.valueOf(-1));
+    }
+    static class Fraction{
+        private BigInteger a;
+        private BigInteger b;
+
+        public BigInteger getA() {
+            return a;
+        }
+
+        public BigInteger getB() {
+            return b;
+        }
+
+        public Fraction(){
+            this.a = BigInteger.valueOf(0);
+            this.b = BigInteger.valueOf(1);
+        }
+
+        public Fraction(BigInteger a, BigInteger b){
+            if(b.equals(BigInteger.valueOf(0))){
+                throw new ArithmeticException("Division by zero!");
+            }
+            this.a = a;
+            this.b = b;
+            this.reduce();
+        }
+
+        private void reduce() {
+            BigInteger gcd = findGCD(this.a, this.b);
+            if (this.b.compareTo(BigInteger.valueOf(0)) > 0) {
+                this.a = this.a.divide(gcd);
+                this.b = this.b.divide(gcd);
+            } else {
+                this.a = this.a.divide(gcd.multiply(BigInteger.valueOf(-1)));
+                this.b = this.a.divide(gcd.multiply(BigInteger.valueOf(-1)));
+            }
+        }
+
+        private Fraction reciprocal() throws ArithmeticException {
+            if (this.toString().equals("0")) {
+                throw new ArithmeticException("Division by zero!");
+            }
+            return new Fraction(this.b, this.a);
+        }
+
+        public Fraction add(Fraction other){
+            return new Fraction(this.a.multiply(other.b).add(other.a.multiply(this.b)), this.b.multiply(other.b));
+        }
+
+        public Fraction subtract(Fraction other){
+            return new Fraction(this.a.multiply(other.b).subtract(other.a.multiply(this.b)), this.b.multiply(other.b));
+        }
+
+        public Fraction multiply(Fraction other) {
+            return new Fraction(other.a .multiply(this.a), this.b.multiply(other.b));
+        }
+
+        public Fraction divide(Fraction other) {
+            other = other.reciprocal();
+            return this.multiply(other);
+        }
+
+        @Override
+        public String toString() {
+            return a + "/" + b;
+        }
+    }
+
+    static class Matrix{
+        private int m;
+        private int n;
+        private Fraction[][] matrixFrac;
+
+        public Matrix(){
+            this.m = 1;
+            this.n = 1;
+            this.matrixFrac = new Fraction[1][1];
+        }
+
+        public Matrix(int m, int n){
+            this.m = m;
+            this.n = n;
+            this.matrixFrac = new Fraction[m][n];
+            for(int i = 0; i < m; i++){
+                for(int j = 0; j < n; j++){
+                    this.matrixFrac[i][j] = new Fraction(BigInteger.valueOf(0), BigInteger.valueOf(1));
+                }
+            }
+        }
+
+
+        public Matrix(Fraction[][] matrix){
+            this.m = matrix.length;
+            this.n = matrix[0].length;
+            this.matrixFrac = matrix;
+        }
+        public Matrix subtract(Matrix anotherMatrix){
+            Matrix result = new Matrix(anotherMatrix.m, anotherMatrix.n);
+            for(int i = 0; i < anotherMatrix.m; i++){
+                for(int j = 0; j < anotherMatrix.n; j++){
+                    result.matrixFrac[i][j] = this.matrixFrac[i][j].subtract(anotherMatrix.matrixFrac[i][j]);
+                }
+            }
+            return result;
+        }
+
+        public static Matrix identity(int m){
+            Matrix result = new Matrix(m, m);
+            for(int i = 0; i < m; i++){
+                for(int j = 0; j < m; j++){
+                    if(i == j){
+                        result.matrixFrac[i][i] = new Fraction(BigInteger.valueOf(1), BigInteger.valueOf(1));
+                    }
+                    else{
+                        result.matrixFrac[i][j] = new Fraction(BigInteger.valueOf(0), BigInteger.valueOf(1));
+                    }
+                }
+            }
+            return result;
+        }
+
+        public static Matrix inverse(Matrix B){
+
+            Matrix A = new Matrix(B.m, B.m);
+            for(int i = 0; i < B.m; i++){
+                for(int j = 0 ; j < B.m; j++){
+                    A.matrixFrac[i][j] = B.matrixFrac[i][j];
+                }
+            }
+
+            Matrix Id = Matrix.identity(A.m);
+            Fraction temp;
+
+            for(int k = 0; k < A.m; k++){
+                temp = A.matrixFrac[k][k];
+
+                for(int j = 0; j < A.m; j++){
+                    A.matrixFrac[k][j] = A.matrixFrac[k][j].divide(temp);
+                    Id.matrixFrac[k][j] = Id.matrixFrac[k][j].divide(temp);
+                }
+
+                for(int i = k + 1; i < A.m; i++){
+                    temp = A.matrixFrac[i][k];
+
+                    for(int j = 0; j < A.m; j++){
+                        A.matrixFrac[i][j] = A.matrixFrac[i][j].subtract(A.matrixFrac[k][j].multiply(temp));
+                        Id.matrixFrac[i][j] = Id.matrixFrac[i][j].subtract(Id.matrixFrac[k][j].multiply(temp));
+                    }
+                }
+            }
+
+            for(int k = A.m - 1; k > 0; k--){
+                for(int i = k - 1; i >= 0; i--){
+                    temp = A.matrixFrac[i][k];
+
+                    for(int j = 0; j < A.m ; j++){
+                        A.matrixFrac[i][j] = A.matrixFrac[i][j].subtract(A.matrixFrac[k][j].multiply(temp));
+                        Id.matrixFrac[i][j] = Id.matrixFrac[i][j].subtract(Id.matrixFrac[k][j].multiply(temp));
+                    }
+                }
+            }
+
+            for(int i = 0; i < A.m; i++){
+                for(int j = 0; j < A.m; j++){
+                    A.matrixFrac[i][j] = Id.matrixFrac[i][j];
+                }
+            }
+            return A;
+        }
+
+        /*public static Matrix inverse(Matrix B) {
+
+            Matrix A = new Matrix(B.m, B.m);
+            for (int i = 0; i < B.m; i++) {
+                for (int j = 0; j < B.m; j++) {
+                    A.matrixFrac[i][j] = B.matrixFrac[i][j];
+                }
+            }
+
+            int i, j, k;
+            int size = B.m;
+            Matrix Id = Matrix.identity(size);
+
+
+            for (k = 0; k < size; k++) {
+                for (j = k + 1; j < size; j++) {
+                    A.matrixFrac[k][j] = A.matrixFrac[k][j].divide(A.matrixFrac[k][k]);
+                }
+                for (j = 0; j < size; j++) {
+                    Id.matrixFrac[k][j] = Id.matrixFrac[k][j].divide(A.matrixFrac[k][k]);
+                }
+                A.matrixFrac[k][k] = A.matrixFrac[k][k].divide(A.matrixFrac[k][k]);
+
+                if (k > 0) {
+                    for (i = 0; i < k; i++) {
+                        for (j = 0; j < size; j++) {
+                            Id.matrixFrac[i][j] = Id.matrixFrac[i][j].subtract(Id.matrixFrac[k][j].multiply(A.matrixFrac[i][k]));
+                        }
+                        for (j = size - 1; j >= k; j--) {
+                            A.matrixFrac[i][j] = A.matrixFrac[i][j].subtract(A.matrixFrac[k][j].multiply(A.matrixFrac[i][k]));
+                        }
+                    }
+                }
+
+                for (i = k + 1; i < size; i++) {
+                    for (j = 0; j < size; j++) {
+                        Id.matrixFrac[i][j] = Id.matrixFrac[i][j].subtract(Id.matrixFrac[k][j].multiply(A.matrixFrac[i][k]));
+                    }
+                    for (j = size - 1; j >= k; j--) {
+                        A.matrixFrac[i][j] = A.matrixFrac[i][j].subtract(A.matrixFrac[k][j].multiply(A.matrixFrac[i][k]));
+                    }
+                }
+            }
+            return Id;
+        }*/
+        public static Matrix dot(Matrix A, Matrix B){
+            Matrix C = new Matrix(A.m, B.n);
+            for(int i = 0; i < A.m; i++){
+                for(int j = 0; j < B.n; j++){
+                    for(int k = 0; k < B.m; k++){
+                        C.matrixFrac[i][j] = C.matrixFrac[i][j].add(A.matrixFrac[i][k].multiply(B.matrixFrac[k][j]));
+                    }
+                }
+            }
+            return C;
+        }
+
+        @Override
+        public String toString(){
+            StringBuilder builder = new StringBuilder();
+            for(int i = 0; i < this.m; i++){
+                for(int j = 0; j < this.n; j++){
+                    builder.append(this.matrixFrac[i][j] + " ");
+                }
+                builder.append("\n");
+            }
+            return builder.toString();
+        }
+
+    }
+
+    public static int[] solution(int[][] m) {
+        // Your code here
+        boolean[] isIntermediate = new boolean[m.length];
+        int[] sums = new int[m.length];
+
+        for(int i = 0; i < m.length; i++){
+            for(int j = 0; j < m[0].length; j++){
+                if(m[i][j] > 0){
+                    isIntermediate[i] = true;
+                }
+            }
+        }
+
+        for(int i = 0; i < m.length; i++){
+            if(!isIntermediate[i]){
+                m[i][i] = 1;
+            }
+        }
+
+        int countOfTerminalStates = 0;
+        for(int i = 0; i < m.length; i++){
+            if(!isIntermediate[i]){
+                countOfTerminalStates++;
+            }
+        }
+
+        if(!isIntermediate[0]){
+            int[] answer = new int[countOfTerminalStates + 1];
+            answer[0] = 1;
+            answer[countOfTerminalStates] = 1;
+            for(int i = 1; i < countOfTerminalStates; i++){
+                answer[i] = 0;
+            }
+            System.out.println(Arrays.toString(answer));
+            return answer;
+        }
+
+        for(int i = 0; i < m.length; i++){
+            int sum = 0;
+            for(int j = 0; j < m[0].length; j++){
+                sum += m[i][j];
+            }
+            sums[i] = sum;
+        }
+
+
+        Fraction[][] pMatrix = new Fraction[m.length][m.length];
+
+        for(int i = 0 ; i < m.length; i++){
+            for(int j = 0 ; j < m[0].length; j++){
+                pMatrix[i][j] = new Fraction(BigInteger.valueOf(m[i][j]), BigInteger.valueOf(sums[i]));
+            }
+        }
+
+        Matrix P = new Matrix(pMatrix);
+        System.out.println(P);
+
+        Fraction[][] Q = new Fraction[m.length - countOfTerminalStates][m.length - countOfTerminalStates];
+        int index1 = 0;
+        int index2 = 0;
+        for(int i = 0; i < m.length; i++){
+            for(int j = 0; j < m[0].length; j++){
+                if(isIntermediate[j] && isIntermediate[i]){
+                    Q[index1][index2] = pMatrix[i][j];
+                    index2++;
+                }
+            }
+            if(isIntermediate[i]){
+                index1++;
+            }
+            index2 = 0;
+        }
+
+        Fraction[][] R = new Fraction[m.length - countOfTerminalStates][countOfTerminalStates];
+        index1 = 0;
+        index2 = 0;
+        for(int i = 0; i < m.length; i++){
+            for(int j = 0; j < m[0].length; j++){
+                if(!isIntermediate[j] && isIntermediate[i]){
+                    R[index1][index2] = pMatrix[i][j];
+                    index2++;
+                }
+            }
+            if(isIntermediate[i]) {
+                index1++;
+            }
+            index2 = 0;
+        }
+
+        Matrix QMatrix = new Matrix(Q);
+        Matrix RMatrix = new Matrix(R);
+
+        System.out.println("BEFORE.....");
+        System.out.println(QMatrix);
+        Matrix identity = Matrix.identity(m.length - countOfTerminalStates);
+        Matrix IminusQ = identity.subtract(QMatrix);
+        System.out.println("AFTER.....");
+        System.out.println(Matrix.inverse(IminusQ));
+        Matrix B = Matrix.dot(Matrix.inverse(IminusQ), RMatrix);
+
+
+        Fraction[] firstString = B.matrixFrac[0];
+        int[] answer = new int[countOfTerminalStates + 1];
+        BigInteger lcm = BigInteger.valueOf(1);
+        for(int i = 0; i < countOfTerminalStates; i++){
+            if(firstString[i].getA().compareTo(BigInteger.valueOf(0)) == 0){
+                answer[i] = 0;
+            }
+            else lcm = findLCM(lcm, firstString[i].getB());
+        }
+
+        for(int i = 0; i < countOfTerminalStates; i++){
+            if(firstString[i].getA().compareTo(BigInteger.valueOf(0)) != 0){
+                answer[i] = (firstString[i].getA().multiply(lcm.divide(firstString[i].getB()))).intValue();
+            }
+        }
+        answer[countOfTerminalStates] = lcm.intValue();
+        System.out.println(Arrays.toString(answer));
+        return answer;
+    }
+
+    public static void main(String[] args) {
+        int[][] example1 = new int[][] {{0, 1, 0 , 0, 0, 1}, {4, 0, 0 , 3, 2, 0}, {0, 0, 0 , 0, 0, 0}, {0, 0, 0 , 0, 0, 0}, {0, 0, 0 , 0, 0, 0}, {0, 0, 0 , 0, 0, 0}};
+        int[][] example2 = new int[][] {{4, 0, 0 , 3, 2, 0}, {0, 0, 0 , 0, 0, 0}, {0, 0, 0 , 0, 0, 0}, {0, 1, 0 , 0, 0, 1}, {0, 0, 0 , 0, 0, 0}, {0, 0, 0 , 0, 0, 0}};
+        int[][] example3 = new int[][] {{0, 2, 1, 0, 0}, {0, 0, 0, 3, 4}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
+        int[][] example4 = new int[][]{{0, 0}, {1, 1}};
+        int[][] example5 = new int[][]{{0, 0, 0, 0 ,0}, {0, 0, 0 ,0 ,0}, {2, 2, 2, 2 ,2}, {0, 0, 0 ,0 ,0}, {2, 2, 2, 2 ,2}};
+        int[][] example6 = new int[][] {{0}};
+        int[][] example7 = new int[][]{{101, 25, 3, 289}, {0, 0, 0, 0}, {1, 1, 458 , 0}, {0, 0, 0, 0}};
+        int[][] example8 = new int[][]{{1,2,3,0,0,0},{4,5,6,0,0,0},{7,8,9,1,0,0},{0,0,0,0,1,2},{0,0,0,0,0,0},{0,0,0,0,0,0}};
+        int[][] example9 = new int[][]{{1, 2, 3, 0, 1, 1},{4,5,6,0,0,0},{7,8,9,1,0,0},{0,0,0,0,1,2},{0,0,0,0,0,0},{0,0,0,0,0,0}};
+       /* solution(example1);
+        System.out.println();
+        solution(example2);
+        System.out.println();
+        solution(example3);
+        System.out.println();
+        solution(example4);
+        System.out.println();
+        solution(example5);
+        System.out.println();
+        solution(example6);
+        System.out.println();
+        solution(example7);
+        System.out.println();
+        solution(example9);*/
+        /*Fraction fraction1 = new Fraction(3, 5);
+        Fraction fraction2 = new Fraction(6,7);
+        Fraction result = fraction1.divide(fraction2);
+        System.out.println(result);*/
+
+        int[][] example10 = new int[][]{
+                {5, 13, 0, 0, 7, 21, 1024},
+                {1, 2, 3, 0, 8, 6, 0},
+                {7, 5, 2, 1, 2048, 0, 9},
+                {0, 0, 0, 0, 0, 0 , 0},
+                {10, 9, 8, 228, 729, 630, 1},
+                {15, 10000, 3, 0, 0, 0, 8},
+                {0, 0, 0, 0, 0, 0 , 0}
+        };
+        solution(example10);
+    }
+}
